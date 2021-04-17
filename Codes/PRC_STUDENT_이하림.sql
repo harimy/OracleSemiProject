@@ -39,10 +39,10 @@ AS
 SELECT S.S_NAME "학생이름"
      , C.C_NAME "과정명"
      , SJ.SJ_NAME "수강과목"
-     , (SC.A_SCORE + SC.W_SCORE + SC.P_SCORE) "수강과목총점"
+     , (SC.A_SCORE + SC.P_SCORE + SC.W_SCORE) "수강과목 총점"
      , CASE WHEN D.D_CODE IS NOT NULL 
             THEN CONCAT('중도탈락 - ',TO_CHAR(D.D_CODE))
-            ELSE NULL
+            ELSE ' '
        END "중도탈락여부"
 FROM TBL_STUDENT S, TBL_SUGANG SG, TBL_COURSE C, TBL_OP_COURSE OPC, TBL_SUBJECT SJ, TBL_OP_SUBJECT OPS, TBL_SCORE SC, TBL_DROP D
 WHERE S.S_CODE = SG.S_CODE(+)
@@ -51,7 +51,8 @@ WHERE S.S_CODE = SG.S_CODE(+)
   AND OPS.OPS_CODE = SC.OPS_CODE(+)
   AND OPC.C_CODE = C.C_CODE(+)
   AND OPS.SJ_CODE = SJ.SJ_CODE(+)
-  AND D.SG_CODE(+) = SG.SG_CODE;
+  AND D.SG_CODE(+) = SG.SG_CODE
+  AND SG.SG_CODE = SC.SG_CODE;
 --==>> View ADMIN_STUDENT_VIEW이(가) 생성되었습니다.
 
 SELECT *
