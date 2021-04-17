@@ -336,8 +336,6 @@ FROM TBL_SUGANG;
 
 
 
-
-
 -- 성적 입력
 EXEC PRC_SCORE_INSERT(1001, 1001, 20, 20, 40); 
 -- JAVA, 민지
@@ -345,7 +343,7 @@ EXEC PRC_SCORE_INSERT(1002, 1001, 20, 30, 40);
 -- JAVA, 혜진
 EXEC PRC_SCORE_INSERT(1003, 1001, 20, 24, 45); 
 -- JAVA, 하림
-EXEC PRC_SCORE_INSERT(1004, 1001, 10, 15, 45); 
+EXEC PRC_SCORE_INSERT(1004, 1001, 10, 15, 45); -- 수강코드 또는 개설과목코드를 잘못 입력하셨습니다. 다시 한 번 확인해주세요.
 -- JAVA, 스윙스
 
 EXEC PRC_SCORE_INSERT(1001, 1002, 15, 27, 25); 
@@ -354,12 +352,33 @@ EXEC PRC_SCORE_INSERT(1002, 1002, 20, 25, 30);
 -- ORACLE, 혜진
 EXEC PRC_SCORE_INSERT(1003, 1002, 15, 30, 40); 
 -- ORACLE, 하림
-EXEC PRC_SCORE_INSERT(1004, 1002, 10, 20, 30); 
--- ORACLE, 스윙스
+EXEC PRC_SCORE_INSERT(1004, 1002, 40, 20, 30); -- 수강코드 또는 개설과목코드를 잘못 입력하셨습니다. 다시 한 번 확인해주세요.
+-- ORACLE, 스윙스 ----------------------------------->> 데이터 수정 필요 (SG_CODE가 1004 -> OPC_CODE가 1002 -> OPS_CODE 는 1006~1009 사이여야 함) 
+
+-- 성적 입력시 배점 초과 에러 테스트 
+EXEC PRC_SCORE_INSERT(1001, 1001, 30, 20, 40); 
+EXEC PRC_SCORE_INSERT(1001, 1001, 20, 40, 40); 
+EXEC PRC_SCORE_INSERT(1001, 1001, 20, 40, 60); 
+--==>> ORA-20013: 점수는 배점을 초과할 수 없습니다. 
+EXEC PRC_SCORE_INSERT(1003, 1002, 40, 30, 40); 
+EXEC PRC_SCORE_INSERT(1003, 1002, 15, 40, 40); 
+EXEC PRC_SCORE_INSERT(1003, 1002, 15, 30, 60); 
+--==>> ORA-20013: 점수는 배점을 초과할 수 없습니다. 
+
+DROP SEQUENCE SEQ_SCORE;
+
+CREATE SEQUENCE SEQ_SCORE
+START WITH 1001
+INCREMENT BY 1
+MINVALUE 1001
+MAXVALUE 9999
+NOCACHE;
+
+DELETE
+FROM TBL_SCORE;
 
 SELECT *
-FROM TBL_SCORE
-ORDER BY 1;
+FROM TBL_SCORE;
 --==>>
 /*
 1001	1001	1001	20	20	40
@@ -372,13 +391,48 @@ ORDER BY 1;
 1008	1004	1002	10	20	30
 */
 
-
+SELECT *
+FROM TBL_SUGANG;
 
 --○ TBL_DROP 데이터 입력
+----1.USER_DEFINE_ERROR 테스트 더미 데이타 
+EXEC PRC_DROP_INSERT(1001, 1004, '성적미달', SYSDATE);
+/*
+명령의 140 행에서 시작하는 중 오류 발생 -
+BEGIN PRC_DROP_INSERT(1007, '성적미달', SYSDATE); END;
+오류 보고 -
+ORA-20014: 중도탈락 대상이 아닙니다.
+ORA-06512: at "HR.PRC_DROP_INSERT", line 78
+ORA-06512: at line 1
+*/
 
+----2.USER_DEFINE_ERROR2 테스트 더미 데이타 
+EXEC PRC_DROP_INSERT(1000, '출석률불충분', SYSDATE);
+/*
+명령의 159 행에서 시작하는 중 오류 발생 -
+BEGIN PRC_DROP_INSERT(1000, '출석률불충분', SYSDATE); END;
+오류 보고 -
+ORA-20015: 과목수강 명단에 없습니다.
+ORA-06512: at "HR.PRC_DROP_INSERT", line 86
+ORA-06512: at line 1
+*/
 
+----3.USER_DEFINE_ERROR3 테스트 더미 데이타 
+EXEC PRC_DROP_INSERT(1010, '성적미달', SYSDATE); 
+--PL/SQL 프로시저가 성공적으로 완료되었습니다.
+EXEC PRC_DROP_INSERT(1011, '성적미달', SYSDATE);
+--PL/SQL 프로시저가 성공적으로 완료되었습니다.
+EXEC PRC_DROP_INSERT(1012, '성적미달', SYSDATE);
+--PL/SQL 프로시저가 성공적으로 완료되었습니다.
 
-
+EXEC PRC_DROP_INSERT(1010, '성적미달', SYSDATE); 
+/*
+BEGIN PRC_DROP_INSERT(1010, '성적미달', SYSDATE); END;
+오류 보고 -
+ORA-20016: 이미 중도탈락된 학생입니다.
+ORA-06512: at "HR.PRC_DROP_INSERT", line 82
+ORA-06512: at line 1
+*/
 
 
 -------------------------- 프로시저 확인 ---------------------------------------
@@ -487,10 +541,10 @@ WHERE 교수명 = '김호진';
 /*
 JAVA	21/02/01	21/02/28	JAVA의 정석	    심혜진	20	40	30	90	1
 JAVA	21/02/01	21/02/28	JAVA의 정석	    이하림	20	45	24	89	2
-ORACLE	21/03/01	21/03/31	ORACLE의 정석	이하림	15	40	30	85	3
+ORACLE	21/03/01	21/03/31	ORACLE의 정석	    이하림	15	40	30	85	3
 JAVA	21/02/01	21/02/28	JAVA의 정석	    박민지	20	40	20	80	4
-ORACLE	21/03/01	21/03/31	ORACLE의 정석	심혜진	20	30	25	75	5
-ORACLE	21/03/01	21/03/31	ORACLE의 정석	박민지	15	25	27	67	6
+ORACLE	21/03/01	21/03/31	ORACLE의 정석	    심혜진	20	30	25	75	5
+ORACLE	21/03/01	21/03/31	ORACLE의 정석	    박민지	15	25	27	67	6
 */
 
 SELECT *
