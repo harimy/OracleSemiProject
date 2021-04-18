@@ -31,40 +31,44 @@ EXEC PRC_STUDENT_DELETE('S10005');
 --==>> PL/SQL 프로시저가 성공적으로 완료되었습니다.
 
 
---○ 관리자 계정에서 등록된 학생 출력(ADMIN_STUDENT_VIEW)
+--○ 관리자 계정에서 등록된 모든 학생 출력(ADMIN_STUDENT_VIEW) -> 수강이 끝나지 않은 과목도 모두 출력 될 수 있게
 -- 출력 정보 : 학생 이름, 과정명, 수강과목, 수강과목 총점
 -- 과정을 중도탈락하여 명단에서 제외된 학생의 경우, 중도탈락 사실을 화면에서 확인할 수 있어야 한다.
 CREATE OR REPLACE VIEW ADMIN_STUDENT_VIEW
 AS
 SELECT S.S_NAME "학생이름"
-     , C.C_NAME "과정명"
-     , SJ.SJ_NAME "수강과목"
+     , NVL(C.C_NAME, '수강미등록') "과정명"
+     , NVL(SJ.SJ_NAME, '개설예정') "수강과목"
      , (SC.A_SCORE + SC.P_SCORE + SC.W_SCORE) "수강과목 총점"
      , CASE WHEN D.D_CODE IS NOT NULL 
             THEN CONCAT('중도탈락 - ',TO_CHAR(D.D_CODE))
-            ELSE ' '
+            ELSE NULL
        END "중도탈락여부"
-FROM TBL_STUDENT S, TBL_SUGANG SG, TBL_COURSE C, TBL_OP_COURSE OPC, TBL_SUBJECT SJ, TBL_OP_SUBJECT OPS, TBL_SCORE SC, TBL_DROP D
+FROM TBL_STUDENT S, TBL_SUGANG SG, TBL_SCORE SC, TBL_DROP D, TBL_OP_SUBJECT OPS, TBL_SUBJECT SJ
+   , TBL_OP_COURSE OPC, TBL_COURSE C
 WHERE S.S_CODE = SG.S_CODE(+)
-  AND SG.OPC_CODE = OPC.OPC_CODE(+)
-  AND OPC.OPC_CODE = OPS.OPC_CODE(+)
-  AND OPS.OPS_CODE = SC.OPS_CODE(+)
-  AND OPC.C_CODE = C.C_CODE(+)
+  AND SG.SG_CODE = D.SG_CODE(+)
+  AND SC.SG_CODE(+) = SG.SG_CODE
   AND OPS.SJ_CODE = SJ.SJ_CODE(+)
-  AND D.SG_CODE(+) = SG.SG_CODE
-  AND SG.SG_CODE = SC.SG_CODE;
+  AND OPS.OPS_CODE(+) = SC.OPS_CODE
+  AND OPC.C_CODE = C.C_CODE(+)
+  AND SG.OPC_CODE = OPC.OPC_CODE(+);
 --==>> View ADMIN_STUDENT_VIEW이(가) 생성되었습니다.
 
 SELECT *
 FROM ADMIN_STUDENT_VIEW;
 --==>>
 /*
-학생이름	과정명	            수강과목	수강과목총점
-박민지	자바 개발자 양성과정	    자바	    240
-심혜진			
-이하림			
-이희주			
-전혜림				
+학생이름	과정명	            수강과목	수강과목 총점	중도탈락여부
+이하림	풀스택 SW개발자과정(G)	JAVA	89	
+박민지	풀스택 SW개발자과정(G)	JAVA	80	        중도탈락 - 1001
+심혜진	풀스택 SW개발자과정(G)	JAVA	90	
+박민지	풀스택 SW개발자과정(G)	ORACLE	67	        중도탈락 - 1001
+심혜진	풀스택 SW개발자과정(G)	ORACLE	75	
+이하림	풀스택 SW개발자과정(G)	ORACLE	85	
+스윙스	풀스택 SW개발자과정(G)	개설예정		
+전혜림	빅데이터 개발자과정(B)	개설예정		
+이희주	빅데이터 개발자과정(B)	개설예정		
 */
 
   
