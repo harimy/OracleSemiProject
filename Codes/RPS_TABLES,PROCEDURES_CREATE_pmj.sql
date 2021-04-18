@@ -2,6 +2,87 @@ SELECT USER
 FROM DUAL;
 --==>> PMJ
 
+/* --------------------------■■■ 목차 ■■■---------------------------------
+
+[ 성적 처리 시스템 구현 요구 분석 ]
+
+
+CASE1. 관리자 계정 로그인
+
+--○ 교수자 관리
+1. 교수자 등록 → PRC_PROFESSOR_INSERT
+2. 교수자 수정 → PRC_PROFESSOR_UPDATE
+3. 교수자 삭제 → PRC_PROFESSOR_DELETE
+4. 교수자 정보 출력 → VIEW_PROFESSOR
+(교수자 명, 배정 과목 명, 과목 기간, 교재 명, 강의실, 강의 진행 여부)
+
+--○ 과정 관리
+1. 과정 등록 → PRC_OP_COURSE_INSERT
+2. 과정 수정 → PRC_OP_COURSE_UPDATE
+3. 과정 삭제 → PRC_OP_COURSE_DELETE
+4. 과정 출력 → ADMIN_OP_COURSE_VIEW
+(과정명, 강의실, 과목명, 과목기간, 교재명, 교수자명)
+
+--○ 과목 관리
+1. 과목 등록 → PRC_OP_SUBJECT_INSERT
+2. 과목 수정 →  PRC_OP_SUBJECT_UPDATE
+3. 과목 삭제 →  PRC_OP_SUBJECT_DELETE
+4. 과목 출력 →  ADMIN_SUBJECT_VIEW
+(과정명, 강의실, 과목명, 과목기간, 교재명, 교수자명)
+
+--○ 학생 관리
+1. 학생 등록 → PRC_STUDENT_INSERT
+2. 학생 수정 → PRC_STUDNET_UPDATE
+3. 학생 삭제 → PRC_STUDENT_DELETE
+4. 학생 출력 → ADMIN_STUDENT_VIEW
+ (이름, 과정명, 수강과목, 수강과목 총점) - 단, 중도탈락한 경우도 확인 가능
+ 
+--○ 학생 수강 관리
+1. 학생 수강 입력 (과정 등록) → PRC_SUGANG_INSERT
+2. 학생 수강 신청 수정 → PRC_SUGANG_UPDATE
+3. 학생 수강 신청 삭제 → PRC_SUGANG_DELETE 
+
+--○ 중도 탈락 관리
+1. 중도 탈락 입력 → PRC_DROP_INSERT
+
+
+
+CASE2. 교수자 계정 로그인
+
+--○ 로그인 첫 화면
+1. 자신이 강의한 과목 출력 → PRC_PROFESSOR_PRINT
+2. 해당 과목의 성적을 처리할 수 있는 화면 출력 → PRC_SCORE_INSERT
+(단, 강의 진행 되지 않은 과목 나오지 않음)
+
+--○ 성적 입력
+1. 과목의 성적 처리 → PRC_ALLOT_INSERT
+2. 자신이 강의한 과목의 성적 입력 전용 화면 → PRC_SCORE_INSERT
+(단, 중도 탈락한 경우 성적 입력 제외)
+3. 성적 정보 수정 → PRC_SCORE_UPDATE
+4. 성적 정보 삭제 → PRC_SCORE_DELETE
+
+--○ 성적 출력
+1. 자신이 강의한 과목에 대한 성적 출력 → PROF_SCORE_VIEW
+(과목명, 과목기간, 교재명, 학생명, 출결, 실기, 필기, 총점, 등수)
+(단, 수강을 한 모든 학생의 정보가 출력됨: 중도 탈락 사실도 확인 가능)
+
+
+
+CASE 3. 학생 계정 로그인
+
+--○ 로그인 첫 화면
+→ 수강 과목 완료한 과목 확인: STUDENT_SUBJECT_VIEW
+
+--○ 성적 출력 
+1. 수강 과목 한 페이지에서 확인 → STU_SCORE_VIEW
+(본인의 성적 정보 중, 수강을 이미 끝낸 과목들만 출력됨)
+(단, 중도 탈락한 경우도 이미 수강한 과목 정보 출력 가능)
+
+
+
+------------------------------------------------------------------------------*/
+
+
 
 -- ■■■ TBL_ADMIN 관리자 테이블 생성 ■■■ --
 
@@ -170,7 +251,7 @@ CREATE TABLE TBL_OP_SUBJECT
 );
 --==>> Table TBL_OP_SUBJECT이(가) 생성되었습니다.
 
--- 교수 삭제 시 수강신청 정보를 남기면서 교수정보만 삭제하기 위해 제약조건 해제
+-- 교수 삭제 시 수강신청 정보를 남기면서 교수정보만 삭제하기 위해 NOT NULL 제약조건 해제
 ALTER TABLE TBL_OP_SUBJECT
 DROP CONSTRAINT OP_SUBJECT_P_CODE_NN;
 --==>> Table TBL_OP_SUBJECT이(가) 변경되었습니다.
@@ -187,7 +268,6 @@ NOCACHE;
 
 -- ■■■ TBL_SUGANG 수강신청 테이블 생성 ■■■ --
 
-
 CREATE TABLE TBL_SUGANG
 ( SG_CODE    NUMBER(4)    
 , S_CODE     VARCHAR2(6)  CONSTRAINT SUGANG_S_CODE_NN NOT NULL
@@ -201,7 +281,7 @@ CREATE TABLE TBL_SUGANG
 );
 --==>> Table TBL_SUGANG이(가) 생성되었습니다.
 
--- 학생 삭제 시 수강신청 정보를 남기면서 학생정보만 삭제하기 위해 제약조건 해제
+-- 학생 삭제 시 수강신청 정보를 남기면서 학생정보만 삭제하기 위해 NOT NULL 제약조건 해제
 ALTER TABLE TBL_SUGANG
 DROP CONSTRAINT SUGANG_S_CODE_NN;
 --==>> Table TBL_SUGANG이(가) 변경되었습니다.
@@ -599,15 +679,149 @@ SEQ_SUGANG	    1001	9999	1	N	N	0	1001
 
 
 
------------------------ ■■■ 프로시저 ■■■ ---------------------------------
+-------------------- ■■■ 프로시저 생성 ■■■ -------------------------------
 
--- 1. 학생 계정 등록/수정/삭제 + 학생 조회
--- PRC_STUDENT_INSERT → 입력 정보는 학생 이름, 주민 뒷자리는 학생 로그인시 패스워드로 사용되도록)
--- PRC_STUDNET_UPDATE
--- PRC_STUDENT_DELETE 
--- ADMIN_STUDENT_VIEW
+-- 0. 로그인 프로시저 생성
+CREATE OR REPLACE PROCEDURE PRC_LOGIN
+(V_DIV   IN VARCHAR2
+ ,V_ID   IN TBL_ADMIN.A_ID%TYPE
+ ,V_PW   IN TBL_ADMIN.A_PW%TYPE
+)
+IS
+    -- 출력용 이름 담을 변수
+    V_NAME  TBL_ADMIN.A_NAME%TYPE;
 
---○ PRC_STUDENT_INSERT
+    --EXCEPTION에 사용될 변수와 값
+    RESULTCODE_USERID        NUMBER(1);
+    RESULTCODE_USERPW_MATCH NUMBER(1);
+    USER_DEFINE_ERROR_ID EXCEPTION;
+    USER_DEFINE_ERROR_PW EXCEPTION;
+    
+    --STUDENT_SUBJECT_VIEW 위한 변수 추가 변수 선언
+    V_S_VIEW_NAME       TBL_STUDENT.S_NAME%TYPE;
+    V_S_VIEW_SUBJECT    TBL_SUBJECT.SJ_NAME%TYPE;
+
+    --STUDENT_SUBJECT_VIEW 위한 커서 선언
+    CURSOR CUR_STUDENT_SELECT 
+    IS
+        SELECT 학생명, 과목명
+        FROM STUDENT_SUBJECT_VIEW
+        WHERE 학생명 = (SELECT S_NAME
+                        FROM TBL_STUDENT
+                        WHERE S_ID=V_ID);
+   
+BEGIN          
+    --사용자의 ID가 존재 유무 확인
+    
+    IF V_DIV = '관리자'
+        THEN SELECT COUNT(*) INTO RESULTCODE_USERID 
+            FROM TBL_ADMIN 
+            WHERE A_ID = V_ID;
+    END IF;    
+    
+    
+    IF V_DIV = '학생'
+        THEN SELECT COUNT(*) INTO RESULTCODE_USERID 
+            FROM TBL_STUDENT
+            WHERE S_ID = V_ID;
+    END IF;
+    
+  
+    IF V_DIV = '교수자'
+        THEN SELECT COUNT(*) INTO RESULTCODE_USERID 
+            FROM TBL_PROFESSOR 
+            WHERE P_ID = V_ID;
+    END IF;
+    
+    --DBMS_OUTPUT.PUT_LINE('RESULTCODE_USERID: '||RESULTCODE_USERID);
+
+    
+    IF RESULTCODE_USERID  =  0
+        THEN  RAISE USER_DEFINE_ERROR_ID;
+    END IF;
+    
+    --사용자의 ID와 PW 일치 유무 확인
+    
+    IF V_DIV = '관리자'
+        THEN SELECT COUNT(*) INTO RESULTCODE_USERPW_MATCH
+            FROM TBL_ADMIN 
+            WHERE A_ID = V_ID AND A_PW = V_PW;   
+    END IF;    
+    
+    
+    IF V_DIV = '학생'
+        THEN SELECT COUNT(*) INTO RESULTCODE_USERPW_MATCH
+            FROM TBL_STUDENT
+            WHERE S_ID = V_ID AND S_PW=V_PW;         
+    END IF;
+    
+  
+    IF V_DIV = '교수자'
+        THEN SELECT COUNT(*) INTO RESULTCODE_USERPW_MATCH
+             FROM TBL_PROFESSOR 
+             WHERE P_ID = V_ID AND P_PW=V_PW;     
+    END IF;
+    
+    --DBMS_OUTPUT.PUT_LINE('RESULTCODE_USERPW_MATCH: '||RESULTCODE_USERPW_MATCH);    
+    
+    IF RESULTCODE_USERPW_MATCH  =  0
+        THEN RAISE USER_DEFINE_ERROR_PW;
+    END IF;
+    
+    --사용자의 ID 존재 확인 및 ID와 PW 일치 확인 모두 끝난 후 학생, 교수자 로그인 첫화면 출력
+    
+    IF V_DIV = '학생'
+        THEN SELECT S_NAME INTO V_NAME
+             FROM TBL_STUDENT 
+             WHERE S_ID = V_ID AND S_PW = V_PW;
+             
+             DBMS_OUTPUT.PUT_LINE('[로그인 성공] 학생 ' || V_NAME ||'님 환영합니다.');
+             
+             OPEN CUR_STUDENT_SELECT;
+             LOOP
+                 FETCH CUR_STUDENT_SELECT INTO V_S_VIEW_NAME, V_S_VIEW_SUBJECT;
+                 EXIT WHEN CUR_STUDENT_SELECT%NOTFOUND;
+                 --출력
+                 DBMS_OUTPUT.PUT_LINE(V_S_VIEW_NAME||' , '|| V_S_VIEW_SUBJECT);
+            END LOOP;
+            CLOSE CUR_STUDENT_SELECT;       
+    END IF;
+    
+    IF V_DIV = '교수자'
+        THEN SELECT P_NAME INTO V_NAME
+             FROM TBL_PROFESSOR 
+             WHERE P_ID = V_ID AND P_PW = V_PW; 
+             
+             DBMS_OUTPUT.PUT_LINE('[로그인 성공] 교수자 ' || V_NAME ||'님 환영합니다.');
+             
+             PRC_PROFESSOR_PRINT(V_ID);
+    END IF;
+    
+    IF V_DIV = '관리자'
+        THEN SELECT A_NAME INTO V_NAME
+             FROM TBL_ADMIN 
+             WHERE A_ID = V_ID AND A_PW = V_PW;
+             DBMS_OUTPUT.PUT_LINE('[로그인 성공] 관리자 ' || V_NAME ||'님 환영합니다.');    
+    END IF;
+    
+    EXCEPTION 
+    WHEN USER_DEFINE_ERROR_ID
+        THEN RAISE_APPLICATION_ERROR(-20001, 'ID가 존재하지 않습니다.');
+            ROLLBACK;
+    WHEN USER_DEFINE_ERROR_PW
+        THEN RAISE_APPLICATION_ERROR(-20002, 'PW를 확인해주세요.');
+            ROLLBACK;
+    WHEN OTHERS
+        THEN  ROLLBACK;
+
+END;
+--==>> Procedure PRC_LOGIN이(가) 컴파일되었습니다.
+
+
+-- 1. 학생 계정 등록/수정/삭제
+
+--○ 학생 등록
+-- 입력 정보는 학생 이름, 주민 뒷자리는 학생 로그인시 패스워드로 사용되도록
 CREATE OR REPLACE PROCEDURE PRC_STUDENT_INSERT
 ( V_NAME    IN TBL_STUDENT.S_NAME%TYPE
 , V_SSN     IN TBL_STUDENT.S_SSN%TYPE
@@ -649,7 +863,7 @@ END;
 --==>> Procedure PRC_STUDENT_INSERT이(가) 컴파일되었습니다.
 
 
---○ PRC_STUDENT_UPDATE
+--○ 학생 수정
 CREATE OR REPLACE PROCEDURE PRC_STUDENT_UPDATE
 ( V_CODE        IN TBL_STUDENT.S_CODE%TYPE
 , V_NAME        IN TBL_STUDENT.S_NAME%TYPE
@@ -681,7 +895,7 @@ BEGIN
     -- 예외 처리
     EXCEPTION
         WHEN USER_DEFINE_ERROR
-            THEN RAISE_APPLICATION_ERROR(-20003, '주민번호를 하이픈(-) 포함 14자리로 입력해주세요.');     --> 주민번호가 잘못된 형식이라고 세부적으로 알려줘야 하지 않을까?
+            THEN RAISE_APPLICATION_ERROR(-20003, '주민번호를 하이픈(-) 포함 14자리로 입력해주세요.');
                 ROLLBACK;
         WHEN OTHERS
             THEN ROLLBACK;
@@ -690,7 +904,7 @@ END;
 --==>> Procedure PRC_STUDENT_UPDATE이(가) 컴파일되었습니다.
 
 
---○ PRC_STUDENT_DELETE
+--○ 학생 삭제
 CREATE OR REPLACE PROCEDURE PRC_STUDENT_DELETE
 ( V_CODE    IN TBL_STUDENT.S_CODE%TYPE
 )
@@ -802,9 +1016,9 @@ END;
 
 
 
---○ 과정 등록 / 수정 / 삭제 (TBL_OP_COURSE) 프로시저 생성
+--3. 과정 등록 / 수정 / 삭제 (TBL_OP_COURSE)
 
--- 개설 과정 등록
+--○ 개설 과정 등록
 CREATE OR REPLACE PROCEDURE PRC_OP_COURSE_INSERT
 ( V_C_NAME        IN TBL_COURSE.C_NAME%TYPE               
 , V_R_CODE        IN TBL_ROOM.R_CODE%TYPE                 
@@ -855,7 +1069,7 @@ END;
 
 
 
--- 개설 과정 수정
+--○ 개설 과정 수정
 CREATE OR REPLACE PROCEDURE PRC_OP_COURSE_UPDATE
 ( V_OPC_CODE      IN TBL_OP_COURSE.OPC_CODE%TYPE
 , V_C_NAME        IN TBL_COURSE.C_NAME%TYPE
@@ -906,7 +1120,7 @@ END;
 --==>> Procedure PRC_OP_COURSE_UPDATE이(가) 컴파일되었습니다.
 
 
--- 개설 과정 삭제
+--○ 개설 과정 삭제
 CREATE OR REPLACE PROCEDURE PRC_OP_COURSE_DELETE
 (  V_OPC_CODE      IN TBL_OP_COURSE.OPC_CODE%TYPE
 )
@@ -946,11 +1160,9 @@ END;
 
 
 
---○ 개설 과목 등록/수정/삭제
+--4. 개설 과목 등록/수정/삭제 (TBL_OP_SUBJECT)
 
-
--- 개설과목 등록
-
+--○ 개설과목 등록
 CREATE OR REPLACE PROCEDURE PRC_OP_SUBJECT_INSERT
 ( V_SJ_CODE           IN TBL_SUBJECT.SJ_CODE%TYPE
 , V_OPC_CODE          IN TBL_OP_COURSE.OPC_CODE%TYPE
@@ -1015,12 +1227,12 @@ BEGIN
     EXCEPTION
             
             WHEN USER_DEFINE_ERROR
-                THEN RAISE_APPLICATION_ERROR(-20010,'입력한 날짜가 기존 과목 날짜와 겹칩니다. 다시 시도하세요.');    -- RAISE_APPLICATION_ERROR(-에러번호,'구문' )는 함수!
+                THEN RAISE_APPLICATION_ERROR(-20010,'입력한 날짜가 기존 과목 날짜와 겹칩니다. 다시 시도하세요.');
                      ROLLBACK;
             WHEN USER_DEFINE_ERROR2   
                 THEN RAISE_APPLICATION_ERROR(-20011,'입력한 날짜가 기존 개설강좌 날짜 안에 유효하지 않습니다.');
                      ROLLBACK;
-            WHEN OTHERS   --- IF ELSIF ELSE 구문에서 ELSE 느낌~ 
+            WHEN OTHERS
                 THEN DBMS_OUTPUT.PUT_LINE('예외처리 되지 않은 에러가 발생했습니다.');
                      ROLLBACK;
 END;
@@ -1028,7 +1240,7 @@ END;
  
 
  
--- 개설 과목 수정
+--○ 개설 과목 수정
 CREATE OR REPLACE PROCEDURE PRC_OP_SUBJECT_UPDATE
 ( V_OPS_CODE          IN TBL_OP_SUBJECT.OPS_CODE%TYPE  
 , V_SJ_CODE           IN TBL_SUBJECT.SJ_CODE%TYPE
@@ -1076,7 +1288,8 @@ BEGIN
 END; 
 --==>> Procedure PRC_OP_SUBJECT_UPDATE이(가) 컴파일되었습니다.
 
--- 개설 과목 삭제
+
+--○ 개설 과목 삭제
 CREATE OR REPLACE PROCEDURE PRC_OP_SUBJECT_DELETE
 (  V_OPS_CODE      IN TBL_OP_SUBJECT.OPS_CODE%TYPE
 )
@@ -1115,8 +1328,10 @@ END;
 --==>> Procedure PRC_OP_SUBJECT_DELETE이(가) 컴파일되었습니다.
 
 
- 
---○ 배점 등록
+
+
+--5. 배점 등록
+
 CREATE OR REPLACE PROCEDURE PRC_ALLOT_INSERT
 ( V_A_ALLOT          IN TBL_ALLOT.A_ALLOT%TYPE             -- 출결
 , V_W_ALLOT          IN TBL_ALLOT.W_ALLOT%TYPE             -- 필기
@@ -1152,9 +1367,9 @@ END;
 
 
 
---○ 수강 입력/수정/등록
+--6. 수강 입력/수정/등록
 
---수강 테이블 입력
+--○ 수강 입력
 CREATE OR REPLACE PROCEDURE PRC_SUGANG_INSERT
 ( V_S_CODE      IN TBL_STUDENT.S_CODE%TYPE
 , V_OPC_CODE    IN TBL_OP_COURSE.OPC_CODE%TYPE
@@ -1217,7 +1432,8 @@ BEGIN
 END;
 --==>> Procedure PRC_SUGANG_INSERT이(가) 컴파일되었습니다.
 
--- 수강 신청 수정
+
+--○ 수강 신청 수정
 CREATE OR REPLACE PROCEDURE PRC_SUGANG_UPDATE
 ( V_SG_CODE   IN TBL_SUGANG.SG_CODE%TYPE
 , V_S_CODE    IN TBL_SUGANG.S_CODE%TYPE
@@ -1285,7 +1501,7 @@ END;
 --==>> Procedure PRC_SUGANG_UPDATE이(가) 컴파일되었습니다.
 
 
--- 수강 신청 삭제
+--○ 수강 신청 삭제
 CREATE OR REPLACE PROCEDURE PRC_SUGANG_DELETE
 ( V_SG_CODE   IN TBL_SUGANG.SG_CODE%TYPE
 )
@@ -1321,9 +1537,11 @@ END;
 --==>> Procedure PRC_SUGANG_DELETE이(가) 컴파일되었습니다.
 
 
---○ 성적 입력/수정/삭제
 
--- 성적 입력
+
+--7. 성적 입력/수정/삭제
+
+--○ 성적 입력
 CREATE OR REPLACE PROCEDURE PRC_SCORE_INSERT
 ( V_SG_CODE             IN TBL_SUGANG.SG_CODE%TYPE
 , V_OPS_CODE            IN TBL_OP_SUBJECT.OPS_CODE%TYPE
@@ -1358,21 +1576,7 @@ BEGIN
     IF ( V_A_SCORE > V_A_ALLOT OR V_W_SCORE > V_W_ALLOT OR V_P_SCORE > V_P_ALLOT )
         THEN RAISE USER_DEFINE_ERROR;
     END IF;
-    
-    /*
-    -- 중도 탈락 여부 확인
-    SELECT NVL(D_CODE, 0) INTO V_D_CODE
-    FROM TBL_DROP
-    WHERE SG_CODE = V_SG_CODE;
-    
-    -- 중도 탈락 코드가 있으면(0이 아니면) 성적 입력 할 수 없도록 예외 발생
-    IF(V_D_CODE != 0)
-        THEN RAISE USER_DEFINE_ERROR2;
-    END IF;
-    */
-    --> 중도탈락 입력 -> 성적이 필요해요 
-    --> 성적 입력할 때 -> 중도탈락여부 확인... 
-
+  
     -- 데이터 입력
     INSERT INTO TBL_SCORE(SC_CODE, SG_CODE, OPS_CODE, A_SCORE, W_SCORE, P_SCORE)
     VALUES(SEQ_SCORE.NEXTVAL, V_SG_CODE, V_OPS_CODE, V_A_SCORE, V_W_SCORE, V_P_SCORE);
@@ -1385,8 +1589,6 @@ BEGIN
        WHEN USER_DEFINE_ERROR
             THEN RAISE_APPLICATION_ERROR(-20013, '점수는 배점을 초과할 수 없습니다. ');
                  ROLLBACK;
-       --WHEN USER_DEFINE_ERROR2
-       --     THEN RAISE_APPLICATION_ERROR(-20016, '이미 중도탈락된 학생입니다.');
        WHEN no_data_found
             THEN DBMS_OUTPUT.PUT_LINE('수강코드 또는 개설과목코드를 잘못 입력하셨습니다. 다시 한 번 확인해주세요.');
                  ROLLBACK;
@@ -1397,7 +1599,7 @@ END;
 --==>> Procedure PRC_SCORE_INSERT이(가) 컴파일되었습니다.
 
 
--- 성적 업데이트 프로시저
+--○ 성적 수정
 CREATE OR REPLACE PROCEDURE PRC_SCORE_UPDATE
 ( V_SC_CODE      IN TBL_SCORE.SC_CODE%TYPE
 , V_A_SCORE      IN TBL_SCORE.A_SCORE%TYPE
@@ -1440,8 +1642,7 @@ END;
 --==>>Procedure PRC_SCORE_UPDATE이(가) 컴파일되었습니다.
 
 
-
--- 성적 삭제
+--○ 성적 삭제
 CREATE OR REPLACE PROCEDURE PRC_SCORE_DELETE
 (V_CODE         IN TBL_SCORE.SC_CODE%TYPE
 )
@@ -1458,107 +1659,7 @@ END;
 
 
 
---○ 중도탈락 입력
-
-CREATE OR REPLACE PROCEDURE PRC_DROP_INSERT
-( V_SG_CODE        IN TBL_DROP.SG_CODE%TYPE -- A - 빅데이터 - 자바, 오라클, R, python 
-, V_SC_CODE        IN TBL_SCORE.SC_CODE%TYPE
-, V_REASON         IN TBL_DROP.REASON%TYPE 
-, V_DR_DATE        IN TBL_DROP.DR_DATE%TYPE
-)
-IS  
-    
-    V_D_CODE         TBL_DROP.D_CODE%TYPE;
-    
-    --중도탈락 INSERT로 입력된 SG_CODE에 해당하는 학생 성적 총합  
-    V_TOT            NUMBER(3) := 0;      
-    --중도탈락 유무 확인 변수 
-    V_DROP_CHECK    NUMBER(1);
-    --수강코드 유무 확인 변수 
-    V_SG_CODE_CHECK    NUMBER(1);
-    --중도탈락 명단 유무 확인 변수
-    V_D_SG_CODE_CHECK    NUMBER(1);    
-    --예외 처리 변수
-    USER_DEFINE_ERROR  EXCEPTION;
-    USER_DEFINE_ERROR2 EXCEPTION;
-    USER_DEFINE_ERROR3 EXCEPTION;
-    
-BEGIN
-        SELECT NVL(MAX(D_CODE), 1000) +1 INTO V_D_CODE
-        FROM TBL_DROP;
-
-        SELECT COUNT(*) INTO V_SG_CODE_CHECK  
-        FROM TBL_SUGANG
-        WHERE SG_CODE=V_SG_CODE;
-        
-        DBMS_OUTPUT.PUT_LINE('수강코드 존재 확인값: '||V_SG_CODE_CHECK);        
-        --예외 처리 (SUGANG테이블에 수강코드 존재 유무 확인)
-        IF (V_SG_CODE_CHECK = 0)
-            THEN RAISE USER_DEFINE_ERROR2;
-        END IF;
-        
-        --중도 탈락 대상 학생의 총점 확인
-        SELECT A_SCORE+W_SCORE+P_SCORE INTO V_TOT
-        FROM TBL_SCORE
-        WHERE SG_CODE=V_SG_CODE
-          AND SC_CODE = V_SC_CODE;
- 
-        SELECT COUNT(*) INTO V_D_SG_CODE_CHECK  
-        FROM TBL_DROP
-        WHERE SG_CODE=V_SG_CODE;
-        DBMS_OUTPUT.PUT_LINE('중도탈락테이블존재하는 값: '||V_D_SG_CODE_CHECK );
-         
-        --예외 처리 (DROP테이블에 이미 존재하는 학생인지 유무 확인)
-        IF (V_D_SG_CODE_CHECK = 1)
-            THEN RAISE USER_DEFINE_ERROR3;
-        END IF;
-        
-        --예외 처리 (DROP테이블에 없고 SUGANG테이블에 있는 학생중 중도탈락 유무 확인)
-        IF (V_TOT >= 80)
-           THEN V_DROP_CHECK := 0;
-        ELSE
-            V_DROP_CHECK := 1;
-        END IF;
-        
-        IF (V_TOT >= 80)
-           THEN V_DROP_CHECK := 0;
-        ELSE
-            V_DROP_CHECK := 1;
-        END IF;
-        
-        IF (V_DROP_CHECK = 0 AND V_REASON != '자발적 중도탈락')
-            THEN RAISE USER_DEFINE_ERROR;
-        END IF;
-    
-        --○ 입력          
-        
-        /*
-        UPDATE TBL_SUGANG
-        SET SG_DATE = TO_DATE('9999-09-09', 'YYYY-MM-DD')
-        WHERE SG_CODE=V_SG_CODE;
-        */
-        
-        INSERT INTO TBL_DROP(D_CODE,SG_CODE,REASON,DR_DATE)
-        VALUES(V_D_CODE,V_SG_CODE,V_REASON,SYSDATE); 
-        
-        COMMIT;
-        
-        --EXCEPTION
-        EXCEPTION 
-        WHEN USER_DEFINE_ERROR3
-            THEN RAISE_APPLICATION_ERROR(-20016, '이미 중도탈락된 학생입니다.');
-                ROLLBACK;
-        WHEN USER_DEFINE_ERROR2
-            THEN RAISE_APPLICATION_ERROR(-20015, '과목수강 명단에 없습니다.');
-                ROLLBACK;
-        WHEN USER_DEFINE_ERROR
-            THEN RAISE_APPLICATION_ERROR(-20014, '중도탈락 대상이 아닙니다.');
-                ROLLBACK;
-        WHEN OTHERS
-            THEN ROLLBACK;   
-END;
---==>> Procedure PRC_DROP_INSERT이(가) 컴파일되었습니다.
-
+ㅈ
 
 
 ------------- ■■■ 교수, 학생 로그인 시 출력 화면 ■■■ ---------------------
@@ -1613,6 +1714,19 @@ BEGIN
 END;
 
 
+--○ 학생 로그인시 과목 출력 (STUDENT_SUBJECT_VIEW)
+-- 수강이 끝난 과목만 출력 가능
+CREATE OR REPLACE VIEW STUDENT_SUBJECT_VIEW
+AS
+SELECT S.S_NAME "학생명", SJ.SJ_NAME "과목명"
+FROM TBL_STUDENT S, TBL_SUGANG SG, TBL_OP_COURSE OPC, TBL_SUBJECT SJ, TBL_OP_SUBJECT OPS
+WHERE S.S_CODE = SG.S_CODE(+)
+  AND SG.OPC_CODE = OPC.OPC_CODE(+)
+  AND OPS.OPC_CODE(+) = OPC.OPC_CODE
+  AND OPS.SJ_CODE = SJ.SJ_CODE(+)
+  AND OPS.END_DATE < SYSDATE;
+--==>> View STUDENT_SUBJECT_VIEW이(가) 생성되었습니다.
+
 
 ----------------------- ■■■ VIEW 생성 ■■■ --------------------------------
 
@@ -1622,8 +1736,9 @@ CREATE OR REPLACE VIEW VIEW_PROFESSOR
 AS
 SELECT PR.P_NAME "교수명", SU.SJ_NAME "배정된과목명", OS.START_DATE "시작일", OS.END_DATE "종료일"
      , BO.B_NAME "교재명", TR.R_NAME "강의실"
-     , (CASE WHEN SYSDATE BETWEEN OS.START_DATE AND OS.END_DATE
-             THEN '강의진행중' ELSE '강의준비중' END) "강의진행여부"
+     , (CASE WHEN SYSDATE BETWEEN OS.START_DATE AND OS.END_DATE THEN '강의진행중'
+             WHEN SYSDATE > OS.END_DATE THEN '강의종료'
+             ELSE '강의준비중' END) "강의진행여부"
 FROM TBL_OP_SUBJECT OS JOIN TBL_OP_COURSE OC
 ON OS.OPC_CODE = OC.OPC_CODE
     JOIN TBL_PROFESSOR PR
@@ -1642,22 +1757,22 @@ ON OS.OPC_CODE = OC.OPC_CODE
 CREATE OR REPLACE VIEW ADMIN_STUDENT_VIEW
 AS
 SELECT S.S_NAME "학생이름"
-     , C.C_NAME "과정명"
-     , SJ.SJ_NAME "수강과목"
+     , NVL(C.C_NAME, '수강미등록') "과정명"
+     , NVL(SJ.SJ_NAME, '개설예정') "수강과목"
      , (SC.A_SCORE + SC.P_SCORE + SC.W_SCORE) "수강과목 총점"
      , CASE WHEN D.D_CODE IS NOT NULL 
             THEN CONCAT('중도탈락 - ',TO_CHAR(D.D_CODE))
             ELSE NULL
        END "중도탈락여부"
-FROM TBL_STUDENT S, TBL_SUGANG SG, TBL_COURSE C, TBL_OP_COURSE OPC, TBL_SUBJECT SJ, TBL_OP_SUBJECT OPS, TBL_SCORE SC, TBL_DROP D
+FROM TBL_STUDENT S, TBL_SUGANG SG, TBL_SCORE SC, TBL_DROP D, TBL_OP_SUBJECT OPS, TBL_SUBJECT SJ
+   , TBL_OP_COURSE OPC, TBL_COURSE C
 WHERE S.S_CODE = SG.S_CODE(+)
-  AND SG.OPC_CODE = OPC.OPC_CODE(+)
-  AND OPC.OPC_CODE = OPS.OPC_CODE(+)
-  AND OPS.OPS_CODE = SC.OPS_CODE(+)
-  AND OPC.C_CODE = C.C_CODE(+)
+  AND SG.SG_CODE = D.SG_CODE(+)
+  AND SC.SG_CODE(+) = SG.SG_CODE
   AND OPS.SJ_CODE = SJ.SJ_CODE(+)
-  AND D.SG_CODE(+) = SG.SG_CODE
-  AND SG.SG_CODE = SC.SG_CODE;
+  AND OPS.OPS_CODE(+) = SC.OPS_CODE
+  AND OPC.C_CODE = C.C_CODE(+)
+  AND SG.OPC_CODE = OPC.OPC_CODE(+);
 --==>> View ADMIN_STUDENT_VIEW이(가) 생성되었습니다.
 
 
@@ -1682,23 +1797,8 @@ WHERE CO.C_CODE(+) = OC.C_CODE
 
 
 
---○ 학생 계정에서 과목 출력 (STUDENT_SUBJECT_VIEW)
--- 수강이 끝난 과목만 출력 가능
-CREATE OR REPLACE VIEW STUDENT_SUBJECT_VIEW
-AS
-SELECT S.S_NAME "학생명", SJ.SJ_NAME "과목명"
-FROM TBL_STUDENT S, TBL_SUGANG SG, TBL_OP_COURSE OPC, TBL_SUBJECT SJ, TBL_OP_SUBJECT OPS
-WHERE S.S_CODE = SG.S_CODE(+)
-  AND SG.OPC_CODE = OPC.OPC_CODE(+)
-  AND OPS.OPC_CODE(+) = OPC.OPC_CODE
-  AND OPS.SJ_CODE = SJ.SJ_CODE(+)
-  AND OPS.END_DATE < SYSDATE;
---==>> View STUDENT_SUBJECT_VIEW이(가) 생성되었습니다.
-
-
 --○ 관리자 계정에서 개설된 과정 출력 (ADMIN_OP_COURSE_VIEW)
 -- 출력 정보: 과정명, 강의실, 과목명, 과목 기간, 교재 명, 교수자명
-
 CREATE OR REPLACE VIEW ADMIN_OP_COURSE_VIEW
 AS
 SELECT C.C_NAME "과정명", R.R_NAME "강의실명", S.SJ_NAME "과목명"
@@ -1717,7 +1817,6 @@ WHERE P.P_CODE = OPS.P_CODE
 
 
 --○ 교수 계정에서 자신이 강의한 과목의 성적 출력 (PROF_SCORE_VIEW)
-
 CREATE OR REPLACE VIEW PROF_SCORE_VIEW
 AS
 SELECT SJ.SJ_NAME "과목명", OPS.START_DATE "과목시작일",OPS.END_DATE "과목종료일"
@@ -1773,9 +1872,28 @@ WHERE OPS.SJ_CODE = SJ.SJ_CODE(+)
   
 
 
+--○ 교수 계정에서 성적 입력 시 중도탈락된 학생은 제외하고 볼 수 있는 뷰
+CREATE OR REPLACE VIEW PROF_SCORE_INSERT_VIEW
+AS
+SELECT SJ.SJ_NAME "과목명", OPS.START_DATE "과목시작일",OPS.END_DATE "과목종료일"
+    , B.B_NAME "교재명", SD.S_NAME "학생명"
+    , P.P_NAME "교수명", SG.SG_CODE "수강코드"
+FROM TBL_OP_SUBJECT OPS,TBL_SUBJECT SJ, TBL_SUGANG SG, TBL_STUDENT SD
+    , TBL_OP_COURSE OPC,  TBL_BOOK B, TBL_PROFESSOR P, TBL_DROP D
+WHERE OPS.OPC_CODE = OPC.OPC_CODE(+)   -- OP_COURSE, OP_SUBJECT
+  AND OPC.OPC_CODE = SG.OPC_CODE(+)    -- SUGANG, OP_COURSE
+  AND SG.S_CODE  = SD.S_CODE (+)       -- SUGANG, STUDENT
+  AND OPS.SJ_CODE = SJ.SJ_CODE(+)      -- OP_SUBJECT, SUBJECT
+  AND OPS.B_CODE = B.B_CODE(+)         -- OP_SUBJECT, BOOK
+  AND OPS.P_CODE = P.P_CODE(+)        -- PROFESSOR, OP_SUBJECT
+  AND SG.SG_CODE = D.SG_CODE(+)       -- DROP, SUGANG
+  AND D.D_CODE IS NULL                 -- 중도탈락 테이블에 입력된 학생이면 출력 되지 않도록
+  AND SD.S_NAME IS NOT NULL;           -- 삭제된 학생 출력되지 않도록
+--==>> View PROF_SCORE_INSERT_VIEW이(가) 생성되었습니다.
+
+
 
 --○ 학생 계정에서 자신이 수강 완료한 과목 성적 확인 (STU_SCORE_VIEW)
-
 CREATE OR REPLACE VIEW STU_SCORE_VIEW
 AS
 SELECT SJ.SJ_NAME "과목명", OPS.START_DATE "과목시작일",OPS.END_DATE "과목종료일"
@@ -1803,24 +1921,4 @@ WHERE S.S_CODE = SG.S_CODE(+)        -- STUDENT, SUGANG
   AND SG.SG_CODE = SC.SG_CODE;        -- SCORE, SUGANG
 --==>> View STU_SCORE_VIEW이(가) 생성되었습니다.
 
-
---○ 교수 계정에서 성적 입력 시 중도탈락된 학생은 제외하고 볼 수 있는 뷰
-
-CREATE OR REPLACE VIEW PROF_SCORE_INSERT_VIEW
-AS
-SELECT SJ.SJ_NAME "과목명", OPS.START_DATE "과목시작일",OPS.END_DATE "과목종료일"
-    , B.B_NAME "교재명", SD.S_NAME "학생명"
-    , P.P_NAME "교수명", SG.SG_CODE "수강코드"
-FROM TBL_OP_SUBJECT OPS,TBL_SUBJECT SJ, TBL_SUGANG SG, TBL_STUDENT SD
-    , TBL_OP_COURSE OPC,  TBL_BOOK B, TBL_PROFESSOR P, TBL_DROP D
-WHERE OPS.OPC_CODE = OPC.OPC_CODE(+)   -- OP_COURSE, OP_SUBJECT
-  AND OPC.OPC_CODE = SG.OPC_CODE(+)    -- SUGANG, OP_COURSE
-  AND SG.S_CODE  = SD.S_CODE (+)       -- SUGANG, STUDENT
-  AND OPS.SJ_CODE = SJ.SJ_CODE(+)      -- OP_SUBJECT, SUBJECT
-  AND OPS.B_CODE = B.B_CODE(+)         -- OP_SUBJECT, BOOK
-  AND OPS.P_CODE = P.P_CODE(+)        -- PROFESSOR, OP_SUBJECT
-  AND SG.SG_CODE = D.SG_CODE(+)       -- DROP, SUGANG
-  AND D.D_CODE IS NULL                 -- 중도탈락 테이블에 입력된 학생이면 출력 되지 않도록
-  AND SD.S_NAME IS NOT NULL;           -- 삭제된 학생 출력되지 않도록
---==>> View PROF_SCORE_INSERT_VIEW이(가) 생성되었습니다.
 
