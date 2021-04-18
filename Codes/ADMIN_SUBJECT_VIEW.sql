@@ -1,12 +1,12 @@
 CREATE OR REPLACE VIEW ADMIN_SUBJECT_VIEW
 AS
-SELECT CO.C_NAME"°ϊΑ¤Έν"
-     , R.R_NAME"°­ΐΗ½Η"
-     , SU.SJ_NAME"°ϊΈρΈν"
-     , OS.START_DATE"°ϊΈρ½ΓΐΫΐΟ"
-     , OS.END_DATE"°ϊΈρΑΎ·αΐΟ"
-     , BO.B_NAME"±³ΐηΈν"
-     , PR.P_NAME"±³ΌφΐΪΈν"
+SELECT CO.C_NAME"κ³Όμ •λª…"
+     , R.R_NAME"κ°•μμ‹¤"
+     , SU.SJ_NAME"κ³Όλª©λª…"
+     , OS.START_DATE"κ³Όλª©μ‹μ‘μΌ"
+     , OS.END_DATE"κ³Όλª©μΆ…λ£μΌ"
+     , BO.B_NAME"κµμ¬λª…"
+     , PR.P_NAME"κµμμλª…"
 FROM TBL_COURSE CO, TBL_ROOM R, TBL_SUBJECT SU, TBL_OP_SUBJECT OS, TBL_BOOK BO, TBL_PROFESSOR PR, TBL_OP_COURSE OC
 WHERE CO.C_CODE(+) = OC.C_CODE
   AND R.R_CODE(+) = OC.R_CODE 
@@ -14,4 +14,4 @@ WHERE CO.C_CODE(+) = OC.C_CODE
   AND SU.SJ_CODE(+) = OS.SJ_CODE 
   AND BO.B_CODE(+) = OS.B_CODE 
   AND PR.P_CODE(+) = OS.P_CODE;
---==>> View ADMIN_SUBJECT_VIEWΐΜ(°΅) »ύΌΊµΗΎϊ½ΐ΄Ο΄Ω.
+--==>> View ADMIN_SUBJECT_VIEWμ΄(κ°€) μƒμ„±λμ—μµλ‹λ‹¤.
